@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+WPA_SUPPLICANT="/sbin/wpa_supplicant"
+DHCLIENT="/sbin/dhclient"
+if [[ $(id -ur) != "0" ]]; then
+    WPA_SUPPLICANT="sudo "${WPA_SUPPLICANT}
+    DHCLIENT="sudo "${DHCLIENT}
+fi
+
+
+CONFDIR=/home/fser/.wifi
+PROGNAME=$(basename $0)
+
+function check_config
+{
+	if [ -d ${CONFDIR} ]; then
+	   if [ $(stat -c %a ${CONFDIR}) != "700" ]; then
+	       echo "${CONFDIR} shouldnt be that public (chmod 700)"
+	   else
+	       echo "All good!";
+	   fi
+	else
+	   echo "No folder yet"
+  	fi
+}
+cd ${CONFDIR}
+case $1 in
+     list)
+	for net in *; do
+	   echo -n "${net} : "
+	   grep ssid ${net} | awk -F\" '{ print $2 }'
+	done
+	;;
+     add)
+	if [ $# -lt "3" ]; then
+		echo "wifi add <<name>> <<essid>>"
+	else  
+		if [ -e $2 ]; then echo "$2 already exist!"; exit; fi
+		echo "Adding $2 ($3)"
+		wpa_passphrase $3 > $2
+	fi
+	;;
+     rm)
+	echo "Removing wifi"
+	rm -i $2
+	;;
+     help)
+	echo "Usage: "
+	echo "${PROGNAME} list : lists previously saved wifi"
+	echo "${PROGNAME} add alias essid : adds alias to the wifi database for given essid"
+	echo "${PROGNAME} rm alias : removes alias from the wifi database"
+	;;
+     *)
+	if [ -e $1 ]; then
+	   ${WPA_SUPPLICANT} -B -Dwext -iwlan0 -c$1 -f/tmp/wpa_supplicant.log
+	   sleep 2
+	   ${DHCLIENT} wlan0
+	else
+	   echo "Unknown wifi $1"
+	fi
+esac
