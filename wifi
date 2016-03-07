@@ -8,7 +8,7 @@ if [[ $(id -ur) != "0" ]]; then
 fi
 
 
-CONFDIR=/home/fser/.wifi
+CONFDIR=${HOME}/.wifi
 PROGNAME=$(basename $0)
 
 function check_config
